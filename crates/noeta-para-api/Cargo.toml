@@ -1,0 +1,41 @@
+[package]
+name = "noeta-para-api"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/nsrosenqvist/noeta"
+rust-version = "1.95"
+
+[dependencies]
+# The extension ABI — this crate's entire reason to exist is `ExtDirective::expand`, the
+# compile-time codegen hook. It registers no modules and no types: `para/api`'s runtime surface is
+# pure Noeta (`api.noe`, `middleware.noe`, `pagination.noe`), and deliberately stays that way.
+# file:// + rev is the pre-publish form; flips to { git = "https://github.com/noeta-lang/noeta", tag = "vX" } when the toolchain repo is published.
+noeta-ext-abi = { git = "file:///home/niklas/Code/lang", rev = "6c32f8d05a273192dea4bedd46d5f22c57d52419" }
+# OpenAPI documents are JSON. Parsed as an untyped `Value` tree rather than through derived structs
+# because a spec is mostly optional keys and vendor extensions: a strict deserialize would reject
+# real-world documents over fields the generator never looks at.
+serde_json = "1"
+
+[dev-dependencies]
+# The expansion tests drive a real link, so they exercise the same path the compiler takes rather
+# than calling the hook directly (which would prove only that the hook returns a string).
+# file:// + rev is the pre-publish form; flips to { git = "https://github.com/noeta-lang/noeta", tag = "vX" } when the toolchain repo is published.
+noeta-loader = { git = "file:///home/niklas/Code/lang", rev = "6c32f8d05a273192dea4bedd46d5f22c57d52419" }
+noeta-lexer = { git = "file:///home/niklas/Code/lang", rev = "6c32f8d05a273192dea4bedd46d5f22c57d52419" }
+noeta-ast = { git = "file:///home/niklas/Code/lang", rev = "6c32f8d05a273192dea4bedd46d5f22c57d52419" }
+# `install_with_extras` — composing this extension with the std units, which has to happen before
+# any registry lookup and therefore once per test binary.
+noeta-stdlib = { git = "file:///home/niklas/Code/lang", rev = "6c32f8d05a273192dea4bedd46d5f22c57d52419" }
+# The placement gate belongs to the checker, not the loader, so proving it requires running it.
+noeta-check = { git = "file:///home/niklas/Code/lang", rev = "6c32f8d05a273192dea4bedd46d5f22c57d52419" }
+
+# Inlined from the monorepo's `[workspace.lints]` — this crate is its own workspace root now.
+[lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+
+[workspace]

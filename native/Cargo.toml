@@ -1,0 +1,19 @@
+# The native entry crate for the `para/api` package. Standalone (its own empty `[workspace]`) so the
+# composed toolchain can build it as a path dependency without a surrounding workspace adopting it.
+# It re-exports the `noeta-para-api` crate's extension slice under the fixed `NOETA_EXTENSIONS`
+# convention.
+[package]
+name = "para-api-native"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+doctest = false
+
+[dependencies]
+# The impl crate lives in this repo (`crates/noeta-para-api`); only the toolchain crates (the
+# extension ABI and the dev-dep test harness) are referenced by git on the toolchain repo — see
+# the impl crate's Cargo.toml.
+noeta-para-api = { path = "../crates/noeta-para-api" }
+
+[workspace]
