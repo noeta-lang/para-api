@@ -11,7 +11,7 @@ rust-version = "1.95"
 # compile-time codegen hook. It registers no modules and no types: `para/api`'s runtime surface is
 # pure Noeta (`api.noe`, `middleware.noe`, `pagination.noe`), and deliberately stays that way.
 # Pinned to the toolchain release this package version is built against.
-noeta-ext-abi = { git = "https://github.com/noeta-lang/noeta", tag = "v0.2.1" }
+noeta-ext-abi = { git = "https://github.com/noeta-lang/noeta", tag = "v0.2.2" }
 # OpenAPI documents are JSON. Parsed as an untyped `Value` tree rather than through derived structs
 # because a spec is mostly optional keys and vendor extensions: a strict deserialize would reject
 # real-world documents over fields the generator never looks at.
@@ -21,14 +21,14 @@ serde_json = "1"
 # The expansion tests drive a real link, so they exercise the same path the compiler takes rather
 # than calling the hook directly (which would prove only that the hook returns a string).
 # Pinned to the toolchain release this package version is built against.
-noeta-loader = { git = "https://github.com/noeta-lang/noeta", tag = "v0.2.1" }
-noeta-lexer = { git = "https://github.com/noeta-lang/noeta", tag = "v0.2.1" }
-noeta-ast = { git = "https://github.com/noeta-lang/noeta", tag = "v0.2.1" }
+noeta-loader = { git = "https://github.com/noeta-lang/noeta", tag = "v0.2.2" }
+noeta-lexer = { git = "https://github.com/noeta-lang/noeta", tag = "v0.2.2" }
+noeta-ast = { git = "https://github.com/noeta-lang/noeta", tag = "v0.2.2" }
 # `install_with_extras` — composing this extension with the std units, which has to happen before
 # any registry lookup and therefore once per test binary.
-noeta-stdlib = { git = "https://github.com/noeta-lang/noeta", tag = "v0.2.1" }
+noeta-stdlib = { git = "https://github.com/noeta-lang/noeta", tag = "v0.2.2" }
 # The placement gate belongs to the checker, not the loader, so proving it requires running it.
-noeta-check = { git = "https://github.com/noeta-lang/noeta", tag = "v0.2.1" }
+noeta-check = { git = "https://github.com/noeta-lang/noeta", tag = "v0.2.2" }
 
 # Inlined from the monorepo's `[workspace.lints]` — this crate is its own workspace root now.
 [lints.rust]
