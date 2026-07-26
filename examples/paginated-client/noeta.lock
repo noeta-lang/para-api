@@ -3,9 +3,9 @@ version = 2
 
 [[package]]
 name = "para/api"
-version = "0.1.2"
+version = "0.1.3"
 source = "path"
 path = "../.."
 native = "native"
 edition = "2026"
-hash = "4420daddd2fb9d17c2d259d1cb12973b667312b428fd27d1fe34f136f69c59a3"
+hash = "02803477dec7b91303fd74b600ddb751228ea84b9fbcdb421c8d958fc5b647da"
