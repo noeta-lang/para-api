@@ -1,6 +1,8 @@
 [package]
 name = "para/api"
 version = "0.1.0"
+# The minimum noeta this package works with; enforced at resolve time from noeta 0.2.1 on.
+toolchain = ">=0.2"
 # This package ships a native Rust extension crate: the `@openapi` directive's compile-time
 # expansion hook (which reads a spec file — something no Noeta code can do at compile time) and the
 # `para.api.url` percent-encoder its generated query strings are built with. A consumer must
