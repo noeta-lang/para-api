@@ -124,12 +124,25 @@ fn expand_openapi(ctx: &DirectiveCtx) -> Result<Expansion, ExpansionError> {
 /// resolves as an export of that file and is not found. Nothing outside the package should need
 /// this name anyway: `Api` re-exposes both entry points as methods precisely so generated code and
 /// user code alike reach them through the `Api` they already hold.
-const URL_FNS: &[ExtFn] = &[ExtFn {
-    name: "encode",
-    params: &[SigType::String],
-    ret: RetTy::Concrete(SigType::String),
-    ..ExtFn::DEFAULTS
-}];
+const URL_FNS: &[ExtFn] = &[
+    ExtFn {
+        name: "encode",
+        params: &[SigType::String],
+        ret: RetTy::Concrete(SigType::String),
+        ..ExtFn::DEFAULTS
+    },
+    // The inverse. Present for symmetry — a client that assembles a query string is often the same
+    // one that has to take one apart — and because a module that can only encode leaves its caller
+    // to write the decoder that cannot be written in Noeta at all (decoding is over UTF-8 bytes).
+    // `std.http.url` is the canonical pair now; this stays the spelling generated code and this
+    // package's own consumers already reach for.
+    ExtFn {
+        name: "decode",
+        params: &[SigType::String],
+        ret: RetTy::Concrete(SigType::String),
+        ..ExtFn::DEFAULTS
+    },
+];
 
 fn url_dispatch(
     func: &str,
@@ -142,6 +155,12 @@ fn url_dispatch(
                 return Ok(NativeOut::Str(String::new()));
             };
             Ok(NativeOut::Str(percent_encode(s)))
+        }
+        "decode" => {
+            let NativeValue::Str(s) = &args[0] else {
+                return Ok(NativeOut::Str(String::new()));
+            };
+            Ok(NativeOut::Str(percent_decode(s)))
         }
         _ => Err(noeta_ext_abi::no_function_error("url", func)),
     }
@@ -166,6 +185,43 @@ fn percent_encode(value: &str) -> String {
 }
 
 /// The `para/api` extension: one directive, and the one module its output calls into.
+/// RFC 3986 percent-decoding: every `%XX` back to its byte, and nothing else.
+///
+/// The exact inverse of [`percent_encode`]. A `+` stays a `+` — that it means a space is the
+/// `application/x-www-form-urlencoded` rule, not a URL's, and applying it here would corrupt every
+/// path containing one; a query parser substitutes it before decoding.
+///
+/// Total: a `%` that does not begin a valid pair is a literal `%` (real query strings carry them),
+/// and bytes that are not valid UTF-8 are replaced rather than dropped, so the result is still a
+/// string and the damage is visible.
+fn percent_decode(value: &str) -> String {
+    let bytes = value.as_bytes();
+    let mut out: Vec<u8> = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        match bytes[i] {
+            b'%' if i + 2 < bytes.len() => {
+                let digit = |c: u8| (c as char).to_digit(16).map(|d| d as u8);
+                match (digit(bytes[i + 1]), digit(bytes[i + 2])) {
+                    (Some(hi), Some(lo)) => {
+                        out.push(hi * 16 + lo);
+                        i += 3;
+                    }
+                    _ => {
+                        out.push(b'%');
+                        i += 1;
+                    }
+                }
+            }
+            byte => {
+                out.push(byte);
+                i += 1;
+            }
+        }
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct ParaApiExtension;
 
@@ -219,6 +275,28 @@ mod tests {
         // One `%XX` per UTF-8 byte. Encoding per `char` would emit something no server decodes.
         assert_eq!(percent_encode("é"), "%C3%A9");
         assert_eq!(percent_encode("日"), "%E6%97%A5");
+    }
+
+    #[test]
+    fn decoding_inverts_encoding_over_bytes() {
+        // The property a string-only decoder cannot have: two escapes rebuild ONE character.
+        assert_eq!(percent_decode("%C3%A9"), "é");
+        for original in ["a b", "a&b=c?d#e", "100%", "é日", "", "plain", "a+b"] {
+            assert_eq!(
+                percent_decode(&percent_encode(original)),
+                original,
+                "{original}"
+            );
+        }
+    }
+
+    #[test]
+    fn decoding_is_total_over_input_a_client_actually_sends() {
+        assert_eq!(percent_decode("100% sure"), "100% sure");
+        assert_eq!(percent_decode("%zz"), "%zz");
+        assert_eq!(percent_decode("%"), "%");
+        // A plus is literal here; the form rule belongs to a query parser.
+        assert_eq!(percent_decode("a+b"), "a+b");
     }
 
     #[test]
