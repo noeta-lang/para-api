@@ -29,7 +29,14 @@ const RESERVED_METHODS: [&str; 3] = ["new", "base_url", "api"];
 const RESERVED_PARAMS: [&str; 4] = ["query", "body", "api", "self"];
 
 /// Generate the whole member list for `target`.
+///
+/// `target` is the decorated declaration's reflection name, which is **fully qualified** when the
+/// declaration lives in a file with a `namespace` (`shop.upstream.PetStore`). Generated source is
+/// spliced INTO that declaration, so what it must name is the bare identifier — the one in scope at
+/// the splice site. Emitting the qualified spelling produced code that does not even parse, and a
+/// multi-file project is the normal case, so this is the first thing the generator does.
 pub fn client(target: &str, spec: &Spec) -> String {
+    let target = target.rsplit('.').next().unwrap_or(target);
     let mut out = String::new();
 
     out.push_str(
@@ -196,6 +203,19 @@ mod tests {
         assert!(out.contains("api: Api"), "{out}");
         assert!(out.contains("fn new(api: Api): PetStore"), "{out}");
         assert!(out.contains("return PetStore { api: api }"), "{out}");
+    }
+
+    #[test]
+    fn a_namespaced_target_generates_its_bare_name() {
+        // A declaration in a file with a `namespace` reflects fully qualified. Generated members
+        // land inside that declaration, where only the bare name is in scope — the qualified
+        // spelling is not merely wrong, it does not parse in a type position.
+        let spec = spec::parse(r#"{"paths":{"/pets":{"get":{"operationId":"listPets"}}}}"#)
+            .expect("spec parses");
+        let out = client("shop.upstream.PetStore", &spec);
+        assert!(out.contains("fn new(api: Api): PetStore"), "{out}");
+        assert!(out.contains("return PetStore { api: api }"), "{out}");
+        assert!(!out.contains("shop.upstream"), "{out}");
     }
 
     #[test]
