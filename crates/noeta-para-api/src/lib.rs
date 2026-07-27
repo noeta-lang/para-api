@@ -128,6 +128,7 @@ const URL_FNS: &[ExtFn] = &[ExtFn {
     name: "encode",
     params: &[SigType::String],
     ret: RetTy::Concrete(SigType::String),
+    ..ExtFn::DEFAULTS
 }];
 
 fn url_dispatch(
