@@ -76,7 +76,12 @@ pub struct Spec {
 /// The HTTP verbs a path item may carry. `parameters`, `summary`, `$ref` and the rest of a path
 /// item's keys are not operations, so the verbs are enumerated rather than inferred from "every key
 /// that maps to an object".
-const METHODS: [&str; 7] = ["get", "put", "post", "delete", "options", "head", "patch"];
+///
+/// `query` is the OpenAPI operation key for the QUERY method — a safe, idempotent read that carries
+/// a request body. Nothing here treats it specially: the verb is emitted as a free string into
+/// `Api.request`, and a body is generated whenever the operation declares a `requestBody`
+/// (independent of the verb), which is exactly QUERY's shape.
+const METHODS: [&str; 8] = ["get", "put", "post", "delete", "options", "head", "patch", "query"];
 
 /// Parse a document into the slice above.
 ///
