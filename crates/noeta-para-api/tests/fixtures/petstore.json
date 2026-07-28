@@ -15,6 +15,11 @@
         "operationId": "createPet",
         "summary": "Create a pet",
         "requestBody": { "content": { "application/json": {} } }
+      },
+      "query": {
+        "operationId": "searchPets",
+        "summary": "Search pets by a filter too large for the URL",
+        "requestBody": { "content": { "application/json": {} } }
       }
     },
     "/pets/{petId}": {

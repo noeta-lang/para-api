@@ -57,6 +57,22 @@ fn methods_of(linked: &Linked, name: &str) -> Vec<String> {
         .unwrap_or_default()
 }
 
+fn param_names(linked: &Linked, struct_name: &str, method: &str) -> Vec<String> {
+    linked
+        .program
+        .stmts
+        .iter()
+        .find_map(|s| match s {
+            noeta_ast::Stmt::Struct(d) if d.name == struct_name => d
+                .methods
+                .iter()
+                .find(|m| m.name == method)
+                .map(|m| m.params.iter().map(|p| p.name.clone()).collect()),
+            _ => None,
+        })
+        .unwrap_or_default()
+}
+
 fn fields_of(linked: &Linked, name: &str) -> Vec<String> {
     linked
         .program
@@ -84,10 +100,24 @@ fn every_operation_in_the_spec_becomes_a_method() {
             "base_url",
             "list_pets",
             "create_pet",
+            // The QUERY operation on `/pets` — a body-carrying read — becomes a method like any other.
+            "search_pets",
             "show_pet_by_id",
             "delete_pet",
         ]
     );
+}
+
+#[test]
+fn a_query_operation_becomes_a_body_carrying_read() {
+    let linked = load(&program(r#"@openapi("petstore.json")"#)).expect("the spec expands");
+
+    // QUERY is a read, but `searchPets` declares a `requestBody`, so the generated method takes a
+    // `body` exactly as `createPet` (a POST) does. The generator keys the body off `requestBody`,
+    // not off the verb — which is precisely QUERY's shape, GET semantics with a POST payload.
+    let params = param_names(&linked, "PetStore", "search_pets");
+    assert!(params.contains(&"body".to_string()), "{params:?}");
+    assert!(params.contains(&"query".to_string()), "{params:?}");
 }
 
 #[test]
