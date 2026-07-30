@@ -13,8 +13,6 @@
 //
 //     noeta run   examples/para-api/paginated-client/client.noe    # the demo
 //     noeta test  examples/para-api/paginated-client/client.noe    # the assertions
-namespace noeta.paginated_client
-
 use std.http.client
 use std.http.{Request, Response, HttpError}
 use std.time

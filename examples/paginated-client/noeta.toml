@@ -3,7 +3,7 @@ name = "noeta/paginated_client"
 version = "0.1.0"
 
 [dependencies]
-para = { path = "../.." }
+para = [{ path = "../.." }]
 
 # `para/api` ships a native extension crate — the `@openapi` directive's compile-time expansion hook
 # and the URL percent-encoder its generated code uses. Authorizing it is deliberately explicit; this

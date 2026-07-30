@@ -25,10 +25,8 @@
 // `pages` returns an `Iterator`, not a `List`: a generator suspends between requests, so pages are
 // fetched only as they are consumed and the sequence composes with `take`/`map`/`filter` like any
 // other iterator. `take(2)` performs exactly two requests.
-namespace para.api.pagination
-
 use std.http.{Request, Response, HttpError}
-use para.api.Api
+use api.Api
 
 // One paging convention. Given the request that produced `resp`, answer the request that fetches
 // the page after it — or `none` when `resp` was the last page.

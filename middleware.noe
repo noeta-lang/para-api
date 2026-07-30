@@ -12,13 +12,11 @@
 // The last two are why middleware must take a callable `next` rather than a before/after hook pair.
 // A hook pair cannot express "answer without performing the request", which is exactly what a mock
 // and a cache hit are; and it cannot express "do that again", which is what an outer retry is.
-namespace para.api.middleware
-
 use std.http.{Request, Response, HttpError}
 use std.http.server
 use std.log
 use std.time
-use para.api.{Middleware, Next}
+use api.{Middleware, Next}
 
 // The part of a request URL a routing table keys on: the path, plus the query string when there is
 // one. `Request.path()` deliberately drops the query, which is right for routing a server but wrong
