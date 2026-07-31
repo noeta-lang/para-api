@@ -81,7 +81,9 @@ pub struct Spec {
 /// a request body. Nothing here treats it specially: the verb is emitted as a free string into
 /// `Api.request`, and a body is generated whenever the operation declares a `requestBody`
 /// (independent of the verb), which is exactly QUERY's shape.
-const METHODS: [&str; 8] = ["get", "put", "post", "delete", "options", "head", "patch", "query"];
+const METHODS: [&str; 8] = [
+    "get", "put", "post", "delete", "options", "head", "patch", "query",
+];
 
 /// Parse a document into the slice above.
 ///
