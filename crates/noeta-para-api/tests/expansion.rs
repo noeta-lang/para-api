@@ -8,7 +8,7 @@
 //! returns a string; linking proves the string *parses*, that its members join the decorated
 //! declaration, and that the paths it reported come back out — which is what actually has to hold.
 
-use noeta_loader::{Linked, LoadDiagnostic, RawModule, link};
+use noeta_loader::{Linked, LoadDiagnostic, ModulePath, RawModule, link};
 use noeta_para_api::ParaApiExtension;
 
 static EXTENSION: ParaApiExtension = ParaApiExtension;
@@ -29,6 +29,11 @@ fn load(entry: &str) -> Result<Linked, Vec<LoadDiagnostic>> {
         entry,
         noeta_lexer::Edition::default(),
         &[] as &[RawModule],
+        // No package root reached this entry — it is linked from a path, not resolved through a
+        // manifest — so nothing is derived and the module's own declaration stands. That is what
+        // every in-memory caller gets, and it keeps these tests about `@openapi` rather than about
+        // module-path derivation.
+        ModulePath::Declared,
     )
 }
 
@@ -50,7 +55,7 @@ fn methods_of(linked: &Linked, name: &str) -> Vec<String> {
         .iter()
         .find_map(|s| match s {
             noeta_ast::Stmt::Struct(d) if d.name == name => {
-                Some(d.methods.iter().map(|m| m.name.clone()).collect())
+                Some(d.methods.iter().map(|m| m.name.to_string()).collect())
             }
             _ => None,
         })

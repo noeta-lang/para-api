@@ -319,6 +319,7 @@ mod tests {
             target: "PetStore".to_string(),
             site: TierSite::Type,
             source_dir: String::new(),
+            fields: Vec::new(),
         };
         let error = expand_openapi(&ctx).expect_err("no argument cannot expand");
         assert!(
@@ -338,6 +339,7 @@ mod tests {
             target: "PetStore".to_string(),
             site: TierSite::Type,
             source_dir: "/proj".to_string(),
+            fields: Vec::new(),
         };
         let error = expand_openapi(&ctx).expect_err("yaml is not read");
         assert!(
@@ -358,6 +360,7 @@ mod tests {
             target: "PetStore".to_string(),
             site: TierSite::Type,
             source_dir: "/proj/api".to_string(),
+            fields: Vec::new(),
         };
         let error = expand_openapi(&ctx).expect_err("a missing spec cannot expand");
         assert!(
