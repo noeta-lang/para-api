@@ -17,7 +17,6 @@
 // A middleware is an ONION, not a before/after hook pair: each layer receives the request AND the
 // rest of the chain, so a layer that never calls `next` answers on its own. That is not a nicety —
 // a cache hit and a mock are exactly that shape, and they are the two middlewares people reach for.
-use std.http.client
 use std.http.{Client, Request, Response, HttpError}
 use para.url
 
