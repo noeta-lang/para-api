@@ -323,7 +323,7 @@ pub struct Retry {
 
     // Exponential backoff, doubled per attempt and capped at 30s so a long retry budget cannot park
     // a program for minutes.
-    fn backoff(base_ms: int, attempt: int): int {
+    pub fn backoff(base_ms: int, attempt: int): int {
         mut ms = base_ms
         mut i = 0
         while i < attempt {
