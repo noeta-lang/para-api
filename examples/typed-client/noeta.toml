@@ -1,0 +1,24 @@
+[package]
+name = "noeta/typed_client"
+version = "0.1.0"
+
+[dependencies]
+# The identity is spelled out (`package = …`) so `[directives]` below can name it: a scope key
+# covers several packages, and the binding has to say which one provides `@openapi`.
+para = [{ path = "../..", package = "para/api" }]
+
+# `@openapi` is a directive, and a directive resolves only through a binding — nothing is ambient.
+# The provider is the package **identity** `para/api`, not the `para` dependency key: that key is a
+# scope array covering several packages, so it cannot say which one you meant.
+[directives]
+openapi = "para/api"
+# The `@test` block below is std's tier, named here for the same reason — this manifest declares a
+# binding regime, and a regime that named one `@name` and left another to chance would be worse than
+# either.
+test = "std"
+
+# `para/api` ships a native extension crate — the `@openapi` directive's compile-time expansion hook
+# and the URL percent-encoder its generated code uses. Authorizing it is deliberately explicit, and
+# this example is the one that actually reaches the hook.
+[trust]
+native = ["para/api"]

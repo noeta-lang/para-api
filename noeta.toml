@@ -1,8 +1,11 @@
 [package]
 name = "para/api"
-version = "0.2.0"
+version = "0.3.0"
 # The minimum noeta this package works with; enforced at resolve time from noeta 0.2.1 on.
-toolchain = ">=0.3"
+# 0.5 is a floor, not a preference: a method is private by default from 0.5 on, so this package's
+# `pub` surface — and the `pub` on every member `@openapi` generates — is not even grammar an
+# earlier toolchain agrees to read the same way.
+toolchain = ">=0.5"
 license = "MIT OR Apache-2.0"
 description = "An HTTP client layer with middleware, mocking, pagination, and an @openapi directive that generates a typed client from a spec."
 keywords = ["api", "http", "openapi", "rest", "web"]

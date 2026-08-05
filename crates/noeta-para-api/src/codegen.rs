@@ -15,6 +15,15 @@
 //! Everything is routed through `self.api.request(...)`, never `client.send` — the whole point of
 //! `para/api` is that a generated call goes through the middleware chain like any other, so
 //! `Mock`, `Cache` and `Logging` apply to generated clients for free.
+//!
+//! ## Every generated method is `pub`
+//!
+//! Since noeta 0.5 a method is **private by default in every type kind**, and this output is
+//! ordinary source that goes through the ordinary grammar — so a bare `fn` here is a method no
+//! caller outside the decorated declaration may reach (E0076). A generated client exists to be
+//! called from outside: `PetStore.new(...)`, `PetStore.base_url()`, `store.show_pet_by_id(...)` are
+//! the whole surface. Public is not a default this generator inherits (a derive's members are
+//! public by construction; an expansion's are parsed), so it is written.
 
 use crate::spec::{In, Operation, Spec};
 
@@ -45,13 +54,13 @@ pub fn client(target: &str, spec: &Spec) -> String {
          api: Api\n\n",
     );
     out.push_str(&format!(
-        "fn new(api: Api): {target} {{\n    return {target} {{ api: api }}\n}}\n\n"
+        "pub fn new(api: Api): {target} {{\n    return {target} {{ api: api }}\n}}\n\n"
     ));
 
     if let Some(base) = &spec.base_url {
         out.push_str(&format!(
             "// The first server the spec names, so a client can be built without copying the URL.\n\
-             fn base_url(): string {{\n    return \"{}\"\n}}\n\n",
+             pub fn base_url(): string {{\n    return \"{}\"\n}}\n\n",
             escape(base)
         ));
     }
@@ -108,7 +117,7 @@ fn method(name: &str, op: &Operation) -> String {
     }
     params.push("query: Map<string, string> = {}".to_string());
     out.push_str(&format!(
-        "fn {name}({}): Result<Response, HttpError> {{\n",
+        "pub fn {name}({}): Result<Response, HttpError> {{\n",
         params.join(", ")
     ));
 
@@ -203,6 +212,35 @@ mod tests {
         assert!(out.contains("api: Api"), "{out}");
         assert!(out.contains("fn new(api: Api): PetStore"), "{out}");
         assert!(out.contains("return PetStore { api: api }"), "{out}");
+    }
+
+    #[test]
+    fn every_generated_method_is_public() {
+        // A method is private by default in every type kind (noeta 0.5), and this output is parsed
+        // as ordinary source — so a bare `fn` would generate a client nobody may call (E0076) from
+        // the file it was generated into. The whole surface is the caller's.
+        let out = generate(
+            r#"{"paths":{"/pets":{"get":{"operationId":"listPets"}}},
+               "servers":[{"url":"http://h"}]}"#,
+        );
+        assert!(out.contains("pub fn new(api: Api): PetStore"), "{out}");
+        assert!(out.contains("pub fn base_url(): string"), "{out}");
+        assert!(out.contains("pub fn list_pets("), "{out}");
+        // No `fn` escapes without it — the assertion that survives a new member being added.
+        let bare: Vec<&str> = out
+            .lines()
+            .filter(|l| l.trim_start().starts_with("fn "))
+            .collect();
+        assert!(bare.is_empty(), "generated but not `pub`: {bare:?}\n{out}");
+    }
+
+    #[test]
+    fn the_generated_field_is_written_without_pub() {
+        // The mirror rule: a `struct`'s fields are already public, so spelling `pub` on one is
+        // E0077. `@openapi` sits on a struct or a class; the field is written bare either way,
+        // which a class reads as private — correct, since only the generated methods touch it.
+        let out = generate(r#"{"paths":{"/pets":{"get":{"operationId":"listPets"}}}}"#);
+        assert!(!out.contains("pub api: Api"), "{out}");
     }
 
     #[test]

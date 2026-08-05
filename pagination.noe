@@ -191,18 +191,18 @@ pub struct Link {
     rel: string
 
     // The overwhelmingly common case: follow `rel="next"` until it is absent.
-    fn new(): Link {
+    pub fn new(): Link {
         return Link { rel: "next" }
     }
 
-    fn rel(rel: string): Link {
+    pub fn rel(rel: string): Link {
         return Link { rel: rel }
     }
 
 }
 
 impl PageStrategy for Link {
-    fn next_page(req: Request, resp: Response): ?Request {
+    pub fn next_page(req: Request, resp: Response): ?Request {
         target = resp.links().get(self.rel) ?? ""
         // No such relation is precisely how RFC 8288 spells "last page". This is the *only* stop
         // condition Link needs — no counting, no probing for an empty body.
@@ -247,19 +247,19 @@ pub struct Offset {
     limit_param: string
     is_last: (Response) -> bool
 
-    fn new(limit: int, is_last: (Response) -> bool): Offset {
+    pub fn new(limit: int, is_last: (Response) -> bool): Offset {
         return Offset { limit: limit, offset_param: "offset", limit_param: "limit", is_last: is_last }
     }
 
     // The same convention under other spellings — `skip`/`take`, `start`/`count`, `from`/`size`.
-    fn named(offset_param: string, limit_param: string, limit: int, is_last: (Response) -> bool): Offset {
+    pub fn named(offset_param: string, limit_param: string, limit: int, is_last: (Response) -> bool): Offset {
         return Offset { limit: limit, offset_param: offset_param, limit_param: limit_param, is_last: is_last }
     }
 
 }
 
 impl PageStrategy for Offset {
-    fn next_page(req: Request, resp: Response): ?Request {
+    pub fn next_page(req: Request, resp: Response): ?Request {
         if !resp.ok() {
             return none
         }
@@ -293,18 +293,18 @@ pub struct Page {
     is_last: (Response) -> bool
 
     // 1-based `?page=N`, the common case.
-    fn new(is_last: (Response) -> bool): Page {
+    pub fn new(is_last: (Response) -> bool): Page {
         return Page { param: "page", start: 1, is_last: is_last }
     }
 
-    fn named(param: string, start: int, is_last: (Response) -> bool): Page {
+    pub fn named(param: string, start: int, is_last: (Response) -> bool): Page {
         return Page { param: param, start: start, is_last: is_last }
     }
 
 }
 
 impl PageStrategy for Page {
-    fn next_page(req: Request, resp: Response): ?Request {
+    pub fn next_page(req: Request, resp: Response): ?Request {
         if !resp.ok() {
             return none
         }
@@ -343,14 +343,14 @@ pub struct Cursor {
     param: string
 
     // Slack spells it `cursor`; Notion spells it `start_cursor`.
-    fn new(param: string = "cursor"): Cursor {
+    pub fn new(param: string = "cursor"): Cursor {
         return Cursor { param: param }
     }
 
 }
 
 impl PageStrategy for Cursor {
-    fn next_page(req: Request, resp: Response): ?Request {
+    pub fn next_page(req: Request, resp: Response): ?Request {
         if !resp.ok() {
             return none
         }

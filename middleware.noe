@@ -40,13 +40,13 @@ pub struct Header {
     name: string
     value: string
 
-    fn new(name: string, value: string): Header {
+    pub fn new(name: string, value: string): Header {
         return Header { name: name, value: value }
     }
 }
 
 impl Middleware for Header {
-    fn handle(req: Request, next: Next): Result<Response, HttpError> {
+    pub fn handle(req: Request, next: Next): Result<Response, HttpError> {
         return next.run(req.with_header(self.name, self.value))
     }
 }
@@ -58,13 +58,13 @@ impl Middleware for Header {
 // asserts). A transport failure is logged at `error` with its classified `kind`, which is the reason
 // `HttpError.kind()` exists — never match on message text.
 pub struct Logging {
-    fn new(): Logging {
+    pub fn new(): Logging {
         return Logging {}
     }
 }
 
 impl Middleware for Logging {
-    fn handle(req: Request, next: Next): Result<Response, HttpError> {
+    pub fn handle(req: Request, next: Next): Result<Response, HttpError> {
         log.info("-> ${req.method()} ${req.url()}")
         outcome: Result<Response, HttpError> = next.run(req)
         match outcome {
@@ -100,12 +100,12 @@ pub struct Mock {
     routes: Map<string, Response>
     fallback: int
 
-    fn new(fallback: int = 404): Mock {
+    pub fn new(fallback: int = 404): Mock {
         return Mock { routes: {}, fallback: fallback }
     }
 
     // Register a canned reply. Returns a NEW `Mock`, so a base mock can be shared and specialized.
-    fn route(method: string, path: string, status: int, body: string = "", headers: Map<string, string> = {}): Mock {
+    pub fn route(method: string, path: string, status: int, body: string = "", headers: Map<string, string> = {}): Mock {
         return self.reply(method, path, server.response(status, body, headers))
     }
 
@@ -113,7 +113,7 @@ pub struct Mock {
     // recorded response carries its own headers and its own originating URL, and rebuilding it from
     // `status` + `body` would throw both away — which would break exactly the replay that matters,
     // a `Link`-paginated walk whose next-page URLs live in a header.
-    fn reply(method: string, path: string, resp: Response): Mock {
+    pub fn reply(method: string, path: string, resp: Response): Mock {
         return Mock { routes: self.routes.set(Mock.key(method, path), resp), fallback: self.fallback }
     }
 
@@ -121,7 +121,7 @@ pub struct Mock {
     // every keyed layer in this file — `Mock` routes on it, `Record` records under it, `Cache`
     // caches by it. One function, so registration and lookup can never disagree, and so a recording
     // can be handed straight to a mock without a translation step.
-    fn key(method: string, path: string): string {
+    pub fn key(method: string, path: string): string {
         return method.upper() ~ " " ~ path
     }
 
@@ -150,7 +150,7 @@ pub struct Mock {
 // layer runs, including the transport. `answer` does the lookup; `handle` only lifts its `Response`
 // into the middleware's `Result`.
 impl Middleware for Mock {
-    fn handle(req: Request, next: Next): Result<Response, HttpError> {
+    pub fn handle(req: Request, next: Next): Result<Response, HttpError> {
         return Ok(self.answer(req))
     }
 }
@@ -177,13 +177,13 @@ pub class Record {
     mut captured: Map<string, Response>
     mut calls: List<string>
 
-    fn new(): Record {
+    pub fn new(): Record {
         return Record { captured: {}, calls: [] }
     }
 
     // Every request seen, in order, as `"METHOD /path?query"` — the same spelling `Mock.route`
     // takes, so a test can assert on *what was called* and not only on what came back.
-    fn calls(): List<string> {
+    pub fn calls(): List<string> {
         return self.calls
     }
 
@@ -194,7 +194,7 @@ pub class Record {
     // the right default for a paginated or idempotent walk (replaying page 2 twice must answer page
     // 2 twice) and the wrong one for an endpoint whose answer changes per call — a mock cannot
     // express a sequence, and pretending otherwise would make replay silently diverge.
-    fn to_mock(fallback: int = 404): Mock {
+    pub fn to_mock(fallback: int = 404): Mock {
         mut mock = Mock.new(fallback)
         for k in self.captured.keys() {
             // The key is already `"METHOD /target"`; `Mock.reply` re-derives it from the pair, so
@@ -208,7 +208,7 @@ pub class Record {
 }
 
 impl Middleware for Record {
-    fn handle(req: Request, next: Next): Result<Response, HttpError> {
+    pub fn handle(req: Request, next: Next): Result<Response, HttpError> {
         k = Mock.key(req.method(), target(req))
         self.calls = self.calls ~ [k]
         outcome = next.run(req)
@@ -243,13 +243,13 @@ pub class Cache {
     mut stored_at: Map<string, int>
     mut hits: int
 
-    fn new(ttl_ms: int): Cache {
+    pub fn new(ttl_ms: int): Cache {
         return Cache { ttl_ms: ttl_ms, entries: {}, stored_at: {}, hits: 0 }
     }
 
     // How many requests were answered without touching `next`. Worth asserting on in a test: it is
     // the difference between "the cache is configured" and "the cache is working".
-    fn hits(): int {
+    pub fn hits(): int {
         return self.hits
     }
 
@@ -261,7 +261,7 @@ pub class Cache {
 }
 
 impl Middleware for Cache {
-    fn handle(req: Request, next: Next): Result<Response, HttpError> {
+    pub fn handle(req: Request, next: Next): Result<Response, HttpError> {
         if !Cache.cacheable(req.method()) {
             return next.run(req)
         }
@@ -312,12 +312,12 @@ pub struct Retry {
     // The defaults mirror `std.http`'s: three extra attempts, 250ms doubling, and the four statuses
     // that actually mean "later" — 429, 502, 503, 504. Note what is absent: **500**. A generic
     // server error is usually deterministic, and hammering it helps nobody.
-    fn new(max: int = 3, base_ms: int = 250): Retry {
+    pub fn new(max: int = 3, base_ms: int = 250): Retry {
         return Retry { max: max, base_ms: base_ms, statuses: [429, 502, 503, 504] }
     }
 
     // Name the retryable statuses yourself — `[]` to retry transport failures only.
-    fn on(max: int, base_ms: int, statuses: List<int>): Retry {
+    pub fn on(max: int, base_ms: int, statuses: List<int>): Retry {
         return Retry { max: max, base_ms: base_ms, statuses: statuses }
     }
 
@@ -351,7 +351,7 @@ pub struct Retry {
 }
 
 impl Middleware for Retry {
-    fn handle(req: Request, next: Next): Result<Response, HttpError> {
+    pub fn handle(req: Request, next: Next): Result<Response, HttpError> {
         mut attempt = 0
         while true {
             outcome = next.run(req)
