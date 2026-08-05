@@ -15,13 +15,18 @@ The split with the stdlib is deliberate and load-bearing: **`std.http` never inv
 
 ```toml
 [dependencies]
-para = { version = "^0.1", package = "para/api" }
+para = { version = "^0.3", package = "para/api" }
+
+[directives]
+openapi = "para/api"    # required to write `@openapi` — nothing is ambient
 
 [trust]
 native = ["para/api"]   # authorizes the package's native extension (the @openapi hook + para.url)
 ```
 
 The package is keyed `para`, so its modules address as `para.api`, `para.api.middleware`, `para.api.pagination`, and `para.url`.
+
+The `[directives]` entry is what makes `@openapi` resolve; a `use` neither substitutes for it nor is needed alongside it, and a program that writes `@openapi` without one gets an unknown-directive error. Name the package **identity** (`"para/api"`), not the dependency key: a key bound to a *scope* — `para = [{ … }, { … }]` — covers several packages at once and cannot say which one you meant. Only a consumer that writes `@openapi` needs the binding; the middleware and pagination surfaces are ordinary imports.
 
 ## The middleware onion — compose behavior around every request
 
@@ -180,8 +185,11 @@ Everything answers `Result<Response, HttpError>`, and the line is sharp: an `Err
 ## Examples
 
 - [`examples/paginated-client/`](examples/paginated-client) — middleware, mocking, and all four pagination strategies, with a hermetic `@test` suite driven entirely against a `Mock` layer.
+- [`examples/typed-client/`](examples/typed-client) — `@openapi` end to end: the `[directives]` binding, a spec on disk, and the generated client called from ordinary top-level code (deliberately not only from `@test`, which is white-box and would type-check against a private surface).
 
 ## Requirements
+
+Noeta **0.5 or later**. The floor is not a preference: from 0.5 a method is private by default in every type kind, so this package's `pub` surface — and the `pub` on every member `@openapi` generates — is grammar an earlier toolchain reads differently.
 
 Consumers compile this package's native crate locally: `cargo` and a Rust toolchain (1.95+) must be on `PATH`. The Noeta toolchain composes and builds it automatically on first use.
 
@@ -189,6 +197,8 @@ Consumers compile this package's native crate locally: `cargo` and a Rust toolch
 
 - `cargo test` in `crates/noeta-para-api` runs the expansion tests (they drive a real link, exercising the same path the compiler takes).
 - `noeta check` / `noeta test` the programs under `examples/` (each is its own package depending on this repo by path).
+
+A note for anyone adding to `examples/`: put at least one call to whatever you are proving **outside** any `@test` block. A dev-tier body is white-box — it may reach a type's private methods — so a public surface exercised only from `@test` type-checks no matter how private it is.
 
 See [AGENTS.md](AGENTS.md) for the repo layout and the toolchain environment the examples need.
 

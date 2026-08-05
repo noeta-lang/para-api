@@ -1,0 +1,106 @@
+// A typed client generated from an OpenAPI document, driven from *outside* the package.
+//
+// The other example composes middleware by hand; this one is the `@openapi` half, and it exists to
+// hold two things CI could not otherwise see:
+//
+//   * **The generated surface is callable.** Since noeta 0.5 a method is private by default in every
+//     type kind, and an expansion's members are ordinary parsed source — so `PetStore.new`,
+//     `PetStore.base_url` and every operation have to be generated `pub` or the client the directive
+//     wrote could not be called by the file it was written into.
+//   * **So is everything the generated bodies reach.** Generated code lands in *this* file and calls
+//     `Api.encode`, `Api.query_string` and `self.api.request` — all from outside `Api`. They are
+//     part of `para.api`'s public contract precisely because generated code depends on them.
+//
+// Both are checked here at the top level, on purpose: a `@test` block is **white-box** (co-located
+// tooling is inside the encapsulation boundary), so a surface exercised only from `@test` type-checks
+// no matter how private it is. Only ordinary code proves it is public.
+//
+//     noeta run   examples/typed-client/client.noe    # the demo
+//     noeta test  examples/typed-client/client.noe    # the assertions
+use std.http.client
+use std.http.{Response, HttpError}
+use para.api.Api
+use para.api.middleware.Mock
+
+// The struct is written empty; `@openapi` supplies the `api` field, `new`, `base_url()`, and one
+// method per operation. `noeta expand examples/typed-client/client.noe` prints exactly what.
+@openapi("petstore.json")
+struct PetStore {}
+
+// The petstore, answered from a canned table rather than a socket — the generated methods run
+// through the middleware chain like any other call, which is what makes a generated client testable
+// at all.
+fn mocked(): PetStore {
+    mock = Mock.new()
+        .route("get", "/pets", 200, "[{\"id\": 1}]")
+        .route("get", "/pets?limit=1", 200, "[{\"id\": 1}]")
+        .route("get", "/pets/7", 200, "{\"id\": 7}")
+        .route("post", "/pets", 201, "{\"id\": 8}")
+    return PetStore.new(Api.new(client.new(PetStore.base_url())).with(mock))
+}
+
+// `base_url()` is generated from the spec's first server, so the URL is written once — in the
+// document — rather than copied into every consumer.
+echo PetStore.base_url()
+
+store = mocked()
+match store.show_pet_by_id("7") {
+    Ok(resp) => {
+        echo resp.body()
+    },
+    Err(e) => {
+        echo "transport failed: ${e.kind()}"
+    },
+}
+
+@test {
+    // An operation with no parameters is the plain case.
+    fn a_generated_operation_reaches_the_chain(): void {
+        match mocked().list_pets() {
+            Ok(resp) => {
+                assert(resp.status() == 200)
+            },
+            Err(_) => {
+                assert(false, "a mock never performs a request")
+            },
+        }
+    }
+
+    // A path parameter is substituted into the template and percent-encoded on the way — through
+    // `Api.encode`, which is why that method is part of the public surface.
+    fn a_path_parameter_is_substituted(): void {
+        match mocked().show_pet_by_id("7") {
+            Ok(resp) => {
+                assert(resp.body() == "{\"id\": 7}")
+            },
+            Err(_) => {
+                assert(false, "a mock never performs a request")
+            },
+        }
+    }
+
+    // Optional query parameters arrive in the trailing map and are appended by `Api.query_string`.
+    fn an_optional_query_parameter_rides_the_trailing_map(): void {
+        match mocked().list_pets({"limit": "1"}) {
+            Ok(resp) => {
+                assert(resp.status() == 200)
+            },
+            Err(_) => {
+                assert(false, "a mock never performs a request")
+            },
+        }
+    }
+
+    // A `requestBody` in the document becomes a `body` parameter, keyed off the body rather than off
+    // the verb.
+    fn a_body_operation_takes_a_body(): void {
+        match mocked().create_pet("{\"name\": \"Rex\"}") {
+            Ok(resp) => {
+                assert(resp.status() == 201)
+            },
+            Err(_) => {
+                assert(false, "a mock never performs a request")
+            },
+        }
+    }
+}

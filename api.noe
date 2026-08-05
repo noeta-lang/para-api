@@ -40,7 +40,7 @@ pub struct Next {
 
     // Continue inward. Calling this is what makes a layer transparent; NOT calling it is what makes
     // a layer answer on its own (a cache hit, a mock, a circuit breaker).
-    fn run(req: Request): Result<Response, HttpError> {
+    pub fn run(req: Request): Result<Response, HttpError> {
         if self.index >= self.stack.len() {
             return self.client.send(req)
         }
@@ -55,25 +55,25 @@ pub struct Api {
     client: Client
     stack: List<dyn Middleware>
 
-    fn new(client: Client): Api {
+    pub fn new(client: Client): Api {
         return Api { client: client, stack: [] }
     }
 
     // Add a layer. **The first layer registered is the outermost** — it sees the request first and
     // the response last — which is the order every onion (PSR-15, Tower, Rack) uses, and the order
     // that makes reading a chain top-to-bottom match the order things happen.
-    fn with(mw: dyn Middleware): Api {
+    pub fn with(mw: dyn Middleware): Api {
         return Api { client: self.client, stack: self.stack ~ [mw] }
     }
 
     // Perform a request through the whole chain. Everything below funnels here.
-    fn send(req: Request): Result<Response, HttpError> {
+    pub fn send(req: Request): Result<Response, HttpError> {
         return Next { stack: self.stack, index: 0, client: self.client }.run(req)
     }
 
     // Build a request the way the chain's outermost layer should see it — path resolved against the
     // client's base URL, client headers applied — without performing it.
-    fn prepare(method: string, path: string, body: string = "", headers: Map<string, string> = {}): Request {
+    pub fn prepare(method: string, path: string, body: string = "", headers: Map<string, string> = {}): Request {
         return self.client.prepare(method, path, body, headers)
     }
 
@@ -83,7 +83,7 @@ pub struct Api {
     // — including everything `@openapi` generates — can encode without importing anything. That
     // matters most for generated code, which lands in the *user's* file: every import it needs is an
     // import the user has to have written for code they did not write.
-    fn encode(value: string): string {
+    pub fn encode(value: string): string {
         return url.encode(value)
     }
 
@@ -96,7 +96,7 @@ pub struct Api {
     // The order is `keys()`' order, which is sorted rather than insertion-ordered. That is worth
     // relying on: the same parameters always produce the same string, so a `Cache` keyed on the URL
     // cannot miss on two spellings of one request.
-    fn query_string(params: Map<string, string>): string {
+    pub fn query_string(params: Map<string, string>): string {
         mut out = ""
         mut sep = "?"
         for k in params.keys() {
@@ -113,27 +113,27 @@ pub struct Api {
     // still means precisely "the network broke" — an HTTP error *status* is an answer, and arrives
     // as an ordinary `Ok(Response)` for you to inspect.
 
-    fn request(method: string, path: string, body: string = "", headers: Map<string, string> = {}): Result<Response, HttpError> {
+    pub fn request(method: string, path: string, body: string = "", headers: Map<string, string> = {}): Result<Response, HttpError> {
         return self.send(self.prepare(method, path, body, headers))
     }
 
-    fn get(path: string, headers: Map<string, string> = {}): Result<Response, HttpError> {
+    pub fn get(path: string, headers: Map<string, string> = {}): Result<Response, HttpError> {
         return self.request("get", path, "", headers)
     }
 
-    fn delete(path: string, headers: Map<string, string> = {}): Result<Response, HttpError> {
+    pub fn delete(path: string, headers: Map<string, string> = {}): Result<Response, HttpError> {
         return self.request("delete", path, "", headers)
     }
 
-    fn post(path: string, body: string = "", headers: Map<string, string> = {}): Result<Response, HttpError> {
+    pub fn post(path: string, body: string = "", headers: Map<string, string> = {}): Result<Response, HttpError> {
         return self.request("post", path, body, headers)
     }
 
-    fn put(path: string, body: string = "", headers: Map<string, string> = {}): Result<Response, HttpError> {
+    pub fn put(path: string, body: string = "", headers: Map<string, string> = {}): Result<Response, HttpError> {
         return self.request("put", path, body, headers)
     }
 
-    fn patch(path: string, body: string = "", headers: Map<string, string> = {}): Result<Response, HttpError> {
+    pub fn patch(path: string, body: string = "", headers: Map<string, string> = {}): Result<Response, HttpError> {
         return self.request("patch", path, body, headers)
     }
 }

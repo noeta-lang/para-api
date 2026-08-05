@@ -134,6 +134,34 @@ fn the_struct_is_written_empty_and_the_directive_supplies_the_plumbing() {
 }
 
 #[test]
+fn every_generated_method_survives_the_parse_as_public() {
+    // Generated source is *parsed*, so it inherits the ordinary default — and since noeta 0.5 a
+    // method is private by default in every type kind. Asserted on the linked AST rather than on the
+    // generator's string, because the string is only a claim until the grammar agrees with it: this
+    // is what proves `store.list_pets(...)` from the file next door is not E0076.
+    let linked = load(&program(r#"@openapi("petstore.json")"#)).expect("the spec expands");
+    let private: Vec<&str> = linked
+        .program
+        .stmts
+        .iter()
+        .find_map(|s| match s {
+            noeta_ast::Stmt::Struct(d) if d.name == "PetStore" => Some(
+                d.methods
+                    .iter()
+                    .filter(|m| !m.is_public)
+                    .map(|m| m.name.as_str())
+                    .collect(),
+            ),
+            _ => None,
+        })
+        .unwrap_or_default();
+    assert!(
+        private.is_empty(),
+        "generated but not callable: {private:?}"
+    );
+}
+
+#[test]
 fn hand_written_members_survive_alongside_generated_ones() {
     let linked = load(
         "use para.api.Api\n\
